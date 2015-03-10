@@ -24,6 +24,12 @@ Examples of Chrome extension functionality not supported:
 1. anything not represented inside the content_scripts object in the
    manifest
 
+## Well that sounds pretty restricted
+
+We just didn't want to get anyone's hopes up.
+
+That said, you can do lots of useful things by rewriting webpages.
+
 ## The example application
 
 The example application injects a "Hello World" message over top of
