@@ -1,0 +1,29 @@
+{
+  "manifest_version": 2,
+  "name": "hello-world",
+  "description": "deface the web with a cheery greeting",
+  "version": "0.0.1",
+    
+  "content_scripts": [
+    {
+      "_run_at": "disabled",
+      "matches": ["http://*/*", "https://*/*"],
+      "css": ["helloworld.css"],
+      "html": [
+        "helloworld.html"
+      ],
+      "js": ["jquery-2.1.1.js",
+             "inject-html.js",
+             "helloworld.js",
+             "jquery-noconflict.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    "/manifest.json",
+    "/*.html"
+  ],
+  "sources": {
+    "jquery-2.1.1.js": "http://code.jquery.com/jquery-2.1.1.js"
+  },
+    "permissions": ["http://*/","http://ip-api.com/"]
+}

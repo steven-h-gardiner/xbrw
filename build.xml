@@ -1,0 +1,163 @@
+<project>
+  <property name="sdk.filename" value="appengine-java-sdk-1.9.18" />
+  <property name="sdk.dir" location="sdk/${sdk.filename}" />
+  <property name="xbrw.name0" value="xbrw"/>
+
+  <available file="/usr/bin/chromium" type="file" property="chrome.packager" value="/usr/bin/chromium"/>
+  <available file="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" type="file" property="chrome.packager" value="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"/>
+
+  <target name="sdk">
+    <get dest="${sdk.filename}.zip" 
+         verbose="true"
+         src="https://storage.googleapis.com/appengine-sdks/featured/${sdk.filename}.zip"
+         usetimestamp="true" />
+         <!-- src="https://commondatastorage.googleapis.com/appengine-sdks/featured/${sdk.filename}.zip" -->
+         <!-- src="http://googleappengine.googlecode.com/files/${sdk.filename}.zip" -->
+    <mkdir dir="sdk"/>
+    <unzip src="${sdk.filename}.zip" dest="sdk"/>
+    <chmod file="sdk/${sdk.filename}/bin/run_java.sh" perm="+x"/>
+  </target>
+
+  <import optional="true" file="${sdk.dir}/config/user/ant-macros.xml" />
+
+  <path id="project.classpath">
+    <pathelement path="war/WEB-INF/classes" />
+    <fileset dir="war/WEB-INF/lib">
+      <include name="**/*.jar" />
+    </fileset>
+    <fileset dir="${sdk.dir}/lib">
+      <include name="shared/**/*.jar" />
+    </fileset>
+  </path>
+
+  <path id="appcfg">
+    <fileset dir="${sdk.dir}/bin">
+      <include name="appcfg.sh"/>
+    </fileset>
+  </path>
+  <path id="war">
+    <fileset dir=".">
+      <include name="war"/>
+    </fileset>
+  </path>
+
+  <target name="lib">
+    <mkdir dir="lib"/>
+    <get dest="lib/json.jar"
+	 verbose="true"
+	 src="http://search.maven.org/remotecontent?filepath=org/codeartisans/org.json/20131017/org.json-20131017.jar"
+	 usetimestamp="true" />
+  </target>
+  
+  <target name="copyjars" depends="lib"
+      description="Copies the App Engine JARs to the WAR.">
+    <copy
+        todir="war/WEB-INF/lib"
+        flatten="true">
+      <fileset dir="${sdk.dir}/lib/user">
+        <include name="**/*.jar" />
+      </fileset>
+      <fileset dir="lib/">
+        <include name="**/*.jar" />
+      </fileset>
+    </copy>
+  </target>
+
+  <target name="compile" depends="copyjars"
+      description="Compiles Java source and copies other source files to the WAR.">
+    <mkdir dir="war/WEB-INF/classes" />
+    <copy todir="war/WEB-INF/classes">
+      <fileset dir="src">
+        <exclude name="**/*.java" />
+      </fileset>
+    </copy>
+    <javac
+        srcdir="src"
+        destdir="war/WEB-INF/classes"
+        classpathref="project.classpath"
+        debug="on" />
+  </target>
+
+  <target name="parse_manifest">
+    <exec executable="node" outputproperty="xbrw.name1" failifexecutionfails="false">
+      <arg value="-e"/>
+      <arg value="console.log(JSON.parse(require('fs').readFileSync('war/manifest.json', 'utf8')).name)"/>
+    </exec>
+    <condition property="xbrw.name" value="${xbrw.name1}" else="${xbrw.name0}">
+      <isset property="xbrw.name1"/>
+    </condition>
+  </target>
+
+  <target name="properties" depends="parse_manifest">
+    <echoproperties/>
+  </target>
+  
+  <target name="download">
+    <exec executable="node">
+      <arg file="node/xbrw/download_sources.js"/>
+      <arg file="war/manifest.json"/>
+    </exec>
+  </target>
+
+  <target name="chromeext" depends="download"/>
+  <target name="greasemonkey" depends="parse_manifest">
+    <exec executable="node">
+      <arg file="node/xbrw/greasemonkey.js"/>
+      <arg file="war/manifest.json"/>
+      <arg path="war/${xbrw.name}.user.js"/>
+    </exec>
+  </target>
+  <target name="tampermonkey" depends="greasemonkey, parse_manifest">
+    <copy file="war/${xbrw.name}.user.js"
+	  tofile="war/${xbrw.name}.tamper.js"/>
+  </target>
+
+  <target name="greasecooper">
+    <mkdir dir="node_modules"/>
+    <exec executable="npm">
+      <arg value="install"/>
+      <arg value="git://github.com/steven-h-gardiner/greasecooper.git"/>
+    </exec>    
+  </target>
+  
+  <target name="xpi" depends="greasecooper, greasemonkey, parse_manifest">
+    <exec executable="node">
+      <arg file="node_modules/.bin/greasecooper"/>
+      <arg value="--userscript"/>
+      <arg file="war/${xbrw.name}.user.js"/>
+      <arg value="--output"/>
+      <arg path="war/${xbrw.name}.xpi"/>
+    </exec>    
+  </target>
+
+  <target name="crx" depends="parse_manifest, download">
+    <delete file="war.crx"/>
+    <delete file="war.pem"/>
+    <delete file="war/${xbrw.name}.crx"/>
+    <delete file="war/${xbrw.name}.pem"/>
+    <exec executable="${chrome.packager}">
+      <arg value="--pack-extension=war/"/>
+    </exec>
+    <copy file="war.crx"
+	  tofile="war/${xbrw.name}.crx" />
+    <move file="war.pem"
+	  tofile="war/${xbrw.name}.pem" />
+  </target>
+  
+  <target name="deployable" depends="compile, download"/>
+
+  <target name="runserver" depends="deployable"
+      description="Starts the development server.">
+    <dev_appserver war="war" port="9090" />
+  </target>
+
+  <target name="predeploy" depends="deployable">
+    <pathconvert property="shpath" pathsep=":" refid="appcfg" /> 
+    <pathconvert property="warpath" pathsep=":" refid="war" /> 
+    <echo message="bash ${shpath} update war" />
+  </target>
+  <target name="deploy" depends="deployable,predeploy">
+    <appcfg war="war" action="update" />
+  </target>
+
+</project>
