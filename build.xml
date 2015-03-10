@@ -144,7 +144,7 @@
 	  tofile="war/${xbrw.name}.pem" />
   </target>
   
-  <target name="deployable" depends="compile, download"/>
+  <target name="deployable" depends="compile, download, greasemonkey, tampermonkey, xpi, crx"/>
 
   <target name="runserver" depends="deployable"
       description="Starts the development server.">
