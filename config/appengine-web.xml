@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
+  <application>${appengine.appname}</application>
+  <version>1503</version>
+  <!-- TODO review code for thread-safety. -->
+  <threadsafe>false</threadsafe>
+  <sessions-enabled>true</sessions-enabled>
+  <system-properties>
+    <property name="app.name" value="${xbrw.name}" />
+    <property name="app.label" value="${xbrw.label}" />
+    <property name="app.desc" value="${xbrw.desc}" />
+  </system-properties>
+</appengine-web-app>
