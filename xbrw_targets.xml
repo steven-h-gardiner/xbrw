@@ -102,18 +102,20 @@
   </target>
   
   <target name="download" depends="node_modules">
-    <exec executable="node">
+    <mkdir dir="war"/>
+    <exec executable="echo">
       <arg file="node_modules/xbrw/download_sources.js"/>
-      <arg file="war/manifest.json"/>
+      <arg file="manifest.json"/>
+      <arg path="war/"/>
     </exec>
   </target>
 
-  <target name="chromeext" depends="download"/>
+  <target name="chromeext" depends="download, war-manifest"/>
   <target name="greasemonkey"
-          depends="parse_manifest, node_modules, xbrw-js">
+          depends="parse_manifest, node_modules, xbrw-js, war-manifest, download">
     <exec executable="node">
       <arg file="node_modules/xbrw/greasemonkey.js"/>
-      <arg file="manifest.json"/>
+      <arg file="war/manifest.json"/>
       <arg path="war/${xbrw.name}.user.js"/>
     </exec>
   </target>
@@ -147,9 +149,12 @@
     </exec>    
   </target>
 
-  <target name="war-manifest">
-    <copy file="manifest.json"
-          tofile="war/manifest.json"/>
+  <target name="war-manifest" depends="download">
+    <exec executable="node">
+      <arg file="node_modules/xbrw/remanifest.js"/>
+      <arg file="manifest.json"/>
+      <arg path="war/manifest.json"/>
+    </exec>
   </target>
   
   <target name="crx" depends="parse_manifest, download, war-manifest">
