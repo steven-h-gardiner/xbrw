@@ -1,0 +1,247 @@
+<project>
+  <property name="sdk.filename" value="appengine-java-sdk-1.9.18" />
+  <property name="sdk.dir0" location="sdk/${sdk.filename}" />
+  <property name="xbrw.name0" value="xbrw"/>
+  <property name="xbrw.desc0" value="Cross Browser ReWriter"/>
+  <property name="xbrw.label0" value="Cross Browser ReWriter"/>
+  <condition property="sdk.dir" value="${sdk.dir}" else="${sdk.dir0}">
+    <isset property="sdk.dir"/>
+  </condition>
+
+  <available file="/usr/bin/chromium" type="file" property="chrome.packager" value="/usr/bin/chromium"/>
+  <available file="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" type="file" property="chrome.packager" value="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"/>
+
+  <target name="sdk">
+    <get dest="${sdk.filename}.zip" 
+         verbose="true"
+         src="https://storage.googleapis.com/appengine-sdks/featured/${sdk.filename}.zip"
+         usetimestamp="true" />
+         <!-- src="https://commondatastorage.googleapis.com/appengine-sdks/featured/${sdk.filename}.zip" -->
+         <!-- src="http://googleappengine.googlecode.com/files/${sdk.filename}.zip" -->
+    <mkdir dir="sdk"/>
+    <unzip src="${sdk.filename}.zip" dest="sdk"/>
+    <chmod file="sdk/${sdk.filename}/bin/run_java.sh" perm="+x"/>
+  </target>
+
+  <import optional="false">
+    <file file="${sdk.dir}/config/user/ant-macros.xml" />
+  </import>
+
+  <path id="project.classpath">
+    <pathelement path="war/WEB-INF/classes" />
+    <fileset dir="war/WEB-INF/lib">
+      <include name="**/*.jar" />
+    </fileset>
+    <fileset dir="${sdk.dir}/lib">
+      <include name="shared/**/*.jar" />
+    </fileset>
+  </path>
+
+  <path id="appcfg">
+    <fileset dir="${sdk.dir}/bin">
+      <include name="appcfg.sh"/>
+    </fileset>
+  </path>
+  <path id="war">
+    <fileset dir=".">
+      <include name="war"/>
+    </fileset>
+  </path>
+
+  <target name="lib">
+    <mkdir dir="lib"/>
+    <get dest="lib/json.jar"
+	 verbose="true"
+	 src="http://search.maven.org/remotecontent?filepath=org/codeartisans/org.json/20131017/org.json-20131017.jar"
+	 usetimestamp="true" />
+  </target>
+  
+  <target name="copyjars" depends="lib"
+      description="Copies the App Engine JARs to the WAR.">
+    <copy
+        todir="war/WEB-INF/lib"
+        flatten="true">
+      <fileset dir="${sdk.dir}/lib/user">
+        <include name="**/*.jar" />
+      </fileset>
+      <fileset dir="lib/">
+        <include name="**/*.jar" />
+      </fileset>
+    </copy>
+  </target>
+
+  <target name="parse_manifest">
+    <exec executable="node" outputproperty="xbrw.name1" failifexecutionfails="false">
+      <arg value="-e"/>
+      <arg value="console.log(JSON.parse(require('fs').readFileSync('manifest.json', 'utf8')).name)"/>
+    </exec>
+    <condition property="xbrw.name" value="${xbrw.name1}" else="${xbrw.name0}">
+      <isset property="xbrw.name1"/>
+    </condition>
+    <exec executable="node" outputproperty="xbrw.desc1" failifexecutionfails="false">
+      <arg value="-e"/>
+      <arg value="console.log(JSON.parse(require('fs').readFileSync('manifest.json', 'utf8')).description)"/>
+    </exec>
+    <condition property="xbrw.desc" value="${xbrw.desc1}" else="${xbrw.desc0}">
+      <isset property="xbrw.desc1"/>
+    </condition>
+    <exec executable="node" outputproperty="xbrw.label1" failifexecutionfails="false">
+      <arg value="-e"/>
+      <arg value="console.log(JSON.parse(require('fs').readFileSync('manifest.json', 'utf8')).label)"/>
+    </exec>
+    <condition property="xbrw.label" value="${xbrw.label1}" else="${xbrw.label0}">
+      <isset property="xbrw.label1"/>
+    </condition>
+    <condition property="appengine.appname" value="${appengine.appname}" else="${xbrw.name}">
+      <isset property="appengine.appname"/>
+    </condition>
+  </target>
+
+  <target name="properties" depends="parse_manifest">
+    <echoproperties/>
+  </target>
+  
+  <target name="download" depends="node_modules">
+    <exec executable="node">
+      <arg file="node_modules/xbrw/download_sources.js"/>
+      <arg file="war/manifest.json"/>
+    </exec>
+  </target>
+
+  <target name="chromeext" depends="download"/>
+  <target name="greasemonkey"
+          depends="parse_manifest, node_modules, xbrw-js">
+    <exec executable="node">
+      <arg file="node_modules/xbrw/greasemonkey.js"/>
+      <arg file="manifest.json"/>
+      <arg path="war/${xbrw.name}.user.js"/>
+    </exec>
+  </target>
+  <target name="tampermonkey" depends="greasemonkey, parse_manifest">
+    <copy file="war/${xbrw.name}.user.js"
+	  tofile="war/${xbrw.name}.tamper.js"/>
+  </target>
+
+  <target name="node_modules">
+    <mkdir dir="node_modules"/>
+    <unjar src="lib/xbrw.jar" dest="node_modules/" overwrite="true">
+      <patternset>
+        <include name="xbrw-*.tgz"/>
+      </patternset>
+      <globmapper from="xbrw-*.tgz" to="xbrw.tgz"/>
+    </unjar>
+
+    <exec executable="npm">
+      <arg value="install"/>
+      <arg file="node_modules/xbrw.tgz"/>
+    </exec>    
+  </target>
+  
+  <target name="xpi" depends="greasemonkey, parse_manifest">
+    <exec executable="node">
+      <arg file="node_modules/xbrw/node_modules/.bin/greasecooper"/>
+      <arg value="--userscript"/>
+      <arg file="war/${xbrw.name}.user.js"/>
+      <arg value="--output"/>
+      <arg path="war/${xbrw.name}.xpi"/>
+    </exec>    
+  </target>
+
+  <target name="war-manifest">
+    <copy file="manifest.json"
+          tofile="war/manifest.json"/>
+  </target>
+  
+  <target name="crx" depends="parse_manifest, download, war-manifest">
+    <delete file="war.crx"/>
+    <delete file="war.pem"/>
+    <delete file="war/${xbrw.name}.crx"/>
+    <delete file="war/${xbrw.name}.pem"/>
+    <exec executable="${chrome.packager}">
+      <arg value="--pack-extension=war/"/>
+    </exec>
+    <copy file="war.crx"
+	  tofile="war/${xbrw.name}.crx" />
+    <move file="war.pem"
+	  tofile="war/${xbrw.name}.pem" />
+  </target>
+  
+  <target name="deployable" depends="war-manifest, download, greasemonkey, tampermonkey, xpi, crx, xbrw-war"/>
+
+  <target name="runserver" depends="deployable"
+      description="Starts the development server.">
+    <dev_appserver war="war" port="9090" />
+  </target>
+
+  <target name="predeploy" depends="deployable">
+    <pathconvert property="shpath" pathsep=":" refid="appcfg" /> 
+    <pathconvert property="warpath" pathsep=":" refid="war" /> 
+    <echo message="bash ${shpath} update war" />
+  </target>
+  <target name="deploy" depends="deployable,predeploy">
+    <appcfg war="war" action="update" />
+  </target>
+
+  <target name="helloworld">
+    <mkdir dir="war"/>
+    <unjar src="lib/xbrw.jar" dest="." overwrite="false">
+      <patternset>
+        <include name="helloworld/manifest.json"/>
+      </patternset>
+      <flattenmapper/>
+    </unjar>
+    <unjar src="lib/xbrw.jar" dest="war/" overwrite="false">
+      <patternset>
+        <include name="helloworld/helloworld.*"/>
+      </patternset>
+      <flattenmapper/>
+    </unjar>
+  </target>
+
+  <target name="xbrw-jsp">
+    <mkdir dir="war"/>
+    <unjar src="lib/xbrw.jar" dest="war/" overwrite="false">
+      <patternset>
+        <include name="jsp/*jsp"/>
+      </patternset>
+      <flattenmapper/>
+    </unjar>
+  </target>
+  <target name="xbrw-js">
+    <mkdir dir="war"/>
+    <unjar src="lib/xbrw.jar" dest="war/" overwrite="false">
+      <patternset>
+        <include name="js/*js"/>
+      </patternset>
+      <flattenmapper/>
+    </unjar>
+  </target>
+  <target name="xbrw-war" depends="xbrw-jsp, parse_manifest, copyjars">
+    <mkdir dir="war/WEB-INF"/>
+    <mkdir dir="war/WEB-INF/classes"/>
+    <mkdir dir="config"/>
+    <unjar src="lib/xbrw.jar" dest="config" overwrite="false">
+      <patternset>
+        <include name="config/web.xml"/>
+        <include name="config/appengine-web.xml"/>
+      </patternset>
+      <flattenmapper/>
+    </unjar>
+    <copy todir="war/WEB-INF">
+      <fileset dir="config">
+        <include name="*.xml"/>
+      </fileset>
+      <filterchain>
+        <expandproperties/>
+      </filterchain>
+    </copy>
+  </target>
+
+  <target name="xbrw-clean">
+    <delete dir="war"/>
+    <delete dir="node_modules"/>
+    <delete dir="config"/>
+    <delete file="war.crx"/>
+  </target>
+  
+</project>

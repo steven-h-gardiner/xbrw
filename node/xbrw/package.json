@@ -1,0 +1,7 @@
+{
+    "name": "xbrw",
+    "version": "0.0.1",
+    "dependencies": {
+      "greasecooper": "git://github.com/steven-h-gardiner/greasecooper.git"
+    }
+}

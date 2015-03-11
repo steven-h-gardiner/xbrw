@@ -186,6 +186,11 @@ public class MirrorServlet  extends javax.servlet.http.HttpServlet {
     if (payload == null) {
       org.json.JSONObject manifest = getManifest();
       org.json.JSONArray scripts = manifest.optJSONArray("content_scripts");
+
+      org.json.JSONObject sources = manifest.optJSONObject("sources");
+      if (sources == null) {
+        sources = new org.json.JSONObject();
+      }
       
       StringBuffer sb = new StringBuffer();
 
@@ -211,8 +216,12 @@ public class MirrorServlet  extends javax.servlet.http.HttpServlet {
           if (js != null) {
             for (int j = 0; j < css.length(); j++) {
               String csspath = css.optString(j);
-              sb.append("<link data-resolve=''{0}'' data-refract=''{1}'' rel='stylesheet' href='/");
-              sb.append(csspath);
+              String csssrc = sources.optString(csspath, "/" + csspath);
+              if (csssrc.startsWith("file:")) {
+                csssrc = "/" + csspath;
+              }
+              sb.append("<link data-resolve=''{0}'' data-refract=''{1}'' rel='stylesheet' href='");
+              sb.append(csssrc);
               sb.append("'></link>");
               sb.append("\n");
             }
@@ -311,8 +320,8 @@ public class MirrorServlet  extends javax.servlet.http.HttpServlet {
           if (req.getMethod().equals("POST")) {
             conn.setDoOutput(true);
           }
-          for (java.util.Enumeration<String> e = req.getHeaderNames() ; e.hasMoreElements() ;) {
-            String name = e.nextElement();
+          for (java.util.Enumeration e = req.getHeaderNames() ; e.hasMoreElements() ;) {
+            String name = e.nextElement().toString();
             if (! name.equals("Host")) { 
 	      conn.setRequestProperty(name, req.getHeader(name));
 	    }
