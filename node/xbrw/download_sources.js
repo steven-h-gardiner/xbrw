@@ -14,7 +14,7 @@ xbrwdl.download_sources = function(manfile, dest) {
   console.error("JSON: %j", spec.json.sources);
 
   for (key in spec.json.sources) {
-    var curl = remanifest.mods.cp.spawn('curl', [
+    var curl = xbrwdl.mods.cp.spawn('curl', [
 					     '-o', key,
 					     '-z', key,
 					     spec.json.sources[key]
