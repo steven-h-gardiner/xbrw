@@ -2,7 +2,8 @@
   <property name="sdk.filename" value="appengine-java-sdk-1.9.18" />
   <property name="sdk.dir" location="sdk/${sdk.filename}" />
 
-  <target name="sdk">
+  <target name="sdk"
+	  description="Downloads the Google App Engine SDK archive">    
     <get dest="${sdk.filename}.zip" 
          verbose="true"
          src="https://storage.googleapis.com/appengine-sdks/featured/${sdk.filename}.zip"
@@ -15,7 +16,8 @@
     </fileset>
   </path>
 
-  <target name="lib" depends="sdk">
+  <target name="lib" depends="sdk"
+	  description="Extracts libraries from the SDK archive, and downloads others from the web">
     <mkdir dir="lib"/>
     <unjar src="${sdk.filename}.zip" dest="lib">
       <patternset>
@@ -30,16 +32,22 @@
 	 usetimestamp="true" />
   </target>
 
-  <target name="npmpack">
+  <target name="npmpack"
+	  description="builds the npm archive to be packaged inside the jar">
     <exec executable="npm">
       <arg value="pack"/>
       <arg file="node/xbrw/"/>
     </exec>
   </target>
   
-  <target name="xbrw" depends="compile, npmpack">
+  <target name="xbrw"
+	  description="Builds the jarfile"
+	  depends="compile, npmpack">
     <mkdir dir="releases"/>
     <jar file="releases/xbrw.jar">
+      <manifest>
+	<attribute name="Main-Class" value="edu.cmu.xbrw.Bootstrap"/>
+      </manifest>
       <fileset dir=".">
         <include name="xbrw**tgz"/>
         <include name="xbrw_targets.xml"/>
@@ -49,7 +57,7 @@
         <include name="config/**"/>
       </fileset>
       <fileset dir="classes">
-        <include name="**/*.class"/>
+        <include name="**/*"/>
       </fileset>
     </jar>
   </target>
