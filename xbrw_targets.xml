@@ -191,7 +191,11 @@
   <target name="deployable" depends="war-manifest, all-extensions, xbrw-war"/>
 
   <target name="runserver" depends="deployable"
-      description="Starts the development server.">
+      description="Starts the development server, serving a proxy and all extensions.">
+    <dev_appserver war="war" port="9090" />
+  </target>
+  <target name="devserver" depends="war-manifest, xbrw-war"
+      description="Starts the development server without building extensions">
     <dev_appserver war="war" port="9090" />
   </target>
 
