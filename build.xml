@@ -2,6 +2,11 @@
   <property name="sdk.filename" value="appengine-java-sdk-1.9.18" />
   <property name="sdk.dir" location="sdk/${sdk.filename}" />
 
+  <exec executable="bash" outputproperty="build.number">
+    <arg value="-c"/>
+    <arg value="git rev-list HEAD | wc -l | awk '{printf &quot;%04i&quot;, $1}'"/>
+  </exec>
+
   <target name="sdk"
 	  description="Downloads the Google App Engine SDK archive">    
     <get dest="${sdk.filename}.zip" 
@@ -44,7 +49,7 @@
 	  description="Builds the jarfile"
 	  depends="compile, npmpack">
     <mkdir dir="releases"/>
-    <jar file="releases/xbrw.jar">
+    <jar file="releases/xbrw-build${build.number}.jar">
       <manifest>
 	<attribute name="Main-Class" value="edu.cmu.xbrw.Bootstrap"/>
       </manifest>
@@ -60,6 +65,8 @@
         <include name="**/*"/>
       </fileset>
     </jar>
+    <copy file="releases/xbrw-build${build.number}.jar"
+	  tofile="releases/xbrw-latest.jar"/>
   </target>
 
   <target name="compile" depends="lib"
