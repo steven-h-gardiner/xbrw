@@ -1,4 +1,5 @@
 <project>
+  <property environment="env" />
   <property name="sdk.filename" value="appengine-java-sdk-1.9.18" />
   <property name="sdk.dir0" location="sdk/${sdk.filename}" />
   <property name="xbrw.name0" value="xbrw"/>
@@ -8,9 +9,12 @@
     <isset property="sdk.dir"/>
   </condition>
 
-  <available file="/usr/bin/chromium" type="file" property="chrome.packager" value="/usr/bin/chromium"/>
-  <available file="/usr/bin/chromium-browser" type="file" property="chrome.packager" value="/usr/bin/chromium-browser"/>
+  <available file="chromium" filepath="${env.PATH}" type="file" property="chrome.packager" value="chromium"/>
+  <available file="chromium-browser" filepath="${env.PATH}" type="file" property="chrome.packager" value="chromium-browser"/>
   <available file="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" type="file" property="chrome.packager" value="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"/>
+
+  <available file="node" filepath="${env.PATH}" type="file" property="node.exec" value="node"/>
+  <available file="nodejs" filepath="${env.PATH}" type="file" property="node.exec" value="nodejs"/>
 
   <target description="Downloads the Google App Engine SDK"
 	  name="sdk">
@@ -80,21 +84,21 @@
   <target name="parse_manifest">
     <fail unless="manifest.exists"
 	  message="File ./manifest.json is missing but required"/>
-    <exec executable="node" outputproperty="xbrw.name1" failifexecutionfails="false">
+    <exec executable="${node.exec}" outputproperty="xbrw.name1" failifexecutionfails="false">
       <arg value="-e"/>
       <arg value="console.log(JSON.parse(require('fs').readFileSync('manifest.json', 'utf8')).name)"/>
     </exec>
     <condition property="xbrw.name" value="${xbrw.name1}" else="${xbrw.name0}">
       <isset property="xbrw.name1"/>
     </condition>
-    <exec executable="node" outputproperty="xbrw.desc1" failifexecutionfails="false">
+    <exec executable="${node.exec}" outputproperty="xbrw.desc1" failifexecutionfails="false">
       <arg value="-e"/>
       <arg value="console.log(JSON.parse(require('fs').readFileSync('manifest.json', 'utf8')).description)"/>
     </exec>
     <condition property="xbrw.desc" value="${xbrw.desc1}" else="${xbrw.desc0}">
       <isset property="xbrw.desc1"/>
     </condition>
-    <exec executable="node" outputproperty="xbrw.label1" failifexecutionfails="false">
+    <exec executable="${node.exec}" outputproperty="xbrw.label1" failifexecutionfails="false">
       <arg value="-e"/>
       <arg value="console.log(JSON.parse(require('fs').readFileSync('manifest.json', 'utf8')).label)"/>
     </exec>
@@ -115,7 +119,7 @@
   <target name="greasemonkey"
           description="Builds a Greasemonkey script, installable by Firefox users who have installed Greasemonkey"
 	  depends="parse_manifest, node_modules, xbrw-js, war-manifest">
-    <exec executable="node">
+    <exec executable="${node.exec}">
       <arg file="node_modules/xbrw/greasemonkey.js"/>
       <arg file="war/manifest.json"/>
       <arg path="war/${xbrw.name}.user.js"/>
@@ -147,7 +151,7 @@
   <target name="xpi"
 	  description="Builds an XPI file, suitable to be deployed to Firefox and/or uploaded to addons.mozilla.org"
 	  depends="greasemonkey, parse_manifest">
-    <exec executable="node">
+    <exec executable="${node.exec}">
       <arg file="node_modules/xbrw/node_modules/.bin/greasecooper"/>
       <arg value="--userscript"/>
       <arg file="war/${xbrw.name}.user.js"/>
@@ -158,7 +162,7 @@
 
   <target name="war-manifest" depends="node_modules"
 	  description="copies the manifest into the WAR, downloads resources, and resolves URLs to the new location">
-    <exec executable="node">
+    <exec executable="${node.exec}">
       <arg file="node_modules/xbrw/remanifest.js"/>
       <arg file="manifest.json"/>
       <arg path="war/manifest.json"/>
