@@ -9,6 +9,7 @@
   </condition>
 
   <available file="/usr/bin/chromium" type="file" property="chrome.packager" value="/usr/bin/chromium"/>
+  <available file="/usr/bin/chromium-browser" type="file" property="chrome.packager" value="/usr/bin/chromium-browser"/>
   <available file="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" type="file" property="chrome.packager" value="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"/>
 
   <target description="Downloads the Google App Engine SDK"
