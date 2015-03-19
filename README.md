@@ -62,10 +62,22 @@ the `content_scripts` list, the following features are supported:
 
 ## Dependencies
 
+This software depends on a number of other software executables being
+installed on the computer where you build the extensions.  Several
+dependencies could probably be eliminated in future.
+
+Most of these dependencies are available in most linux or mac
+packaging systems.
+
 1. [Apache Ant](http://ant.apache.org)
 1. [nodejs](http://nodejs.org)
 1. [Chromium](http://chromium.org) and/or Google Chrome, for packaging
    Chrome extensions
+1. [GNU parallel](https://www.gnu.org/software/parallel/) 
+1. [xsltproc](http://xmlsoft.org/XSLT/)
+1. [wget](https://www.gnu.org/software/wget/)
+1. [curl](http://curl.haxx.se/)
+1. [xml2](http://ofb.net/~egnor/xml2/)
 
 ## The example application
 
@@ -91,6 +103,37 @@ All of these will be injected into rewritten pages.  In addition to
 this content, the `manifest.json` file contains references to further
 required information, e.g. [the jquery library](http://jquery.com),
 from the web.
+
+## Note on jQuery
+
+If you use jQuery or another javascript library -- which you should!
+jQuery in particular does a lot of work towards allowing cross-browser
+javascript -- keep in mind that your javascript code will be injected
+into many pages that probably have their own javascript, frequently
+including their own javascript libraries.  In your injected code,
+you'll have to make a little effort that your code does not conflict
+with the page's code.
+
+In the particular case of jQuery, loading the jQuery library defines a
+global variable named `jQuery` and aliased as `$`, which can be
+extended by loading jQuery plugins.
+
+The page's code may reference the global `jQuery` object, and assume
+that the page's plugins are loaded into it.  To prevent the injected
+`jQuery` object from displacing the page`s `jQuery` object, you should
+include in your `manifest.json` file the `jquery-noconflict.js`
+script, which instructs jQuery to remove itself from the global
+namespace and restore whatever was there before.  The example
+application does this.
+
+Your injected code cannot make direct use of the global `jQuery`
+object because by the time the code runs the injected `jQuery` object
+will have been removed by `jquery-noconflict.js`.  A relatively simple
+way to work around this is to save a reference to the injected
+`jQuery` object when your code is loaded, then use that reference when
+the code runs.  The example application saves a reference to the
+`jQuery` object as `hello.jQuery` then uses that object in its event
+listeners (see `helloworld.js`).
 
 ## Creating a [Greasemonkey](http://greasespot.net) user script for Firefox
 
@@ -160,24 +203,28 @@ the end of `http://localhost:9090/mirror/`
 
 ## Deploying a proxy server on Google App Engine
 
-To deploy to Google App Engine, you'll need the following
+To deploy to Google App Engine (GAE), you'll need the following
 
 1. download the SDK, as above: `ant sdk`
 1. reserve a Google App Engine application with name Y
-1. 
+1. execute the `ant predeploy` command, to create GAE configuration
+   files at `war/WEB-INF/web.xml` and `war/WEB-INF/appengine-web.xml`
+1. make sure that `manifest.json` and `war/WEB-INF/appengine-web.xml`
+   accurately reflect that the name of the application is Y
+1. execute the `ant deploy` command, to install the application on GAE
 
-## Creating a new application
+The `ant deploy` command may fail, reporting that it lacks the proper
+credentials to deploy to GAE.  You will have to enter them once before
+you can use the ant command.  To enter the command, copy and paste the
+final line from the output of `ant predeploy` (which will be something
+like `bash .../appengine-java-sdk.../bin/appcfg.sh update war`) into
+the shell.  You'll then be prompted for your Google username and
+password, which will be stored by the appengine SDK for later use.
 
-1. change manifest.json and add scripts as needed to do what you need
-   to do (debug as unpacked Chrome extension)
-1. reserve a Google App Engine application with name X
-1. put X in war/appengine-web.xml
-1. ant deploy
-
-At X.appspot.com/downloads.jsp you should see a list of installation
-instructions for the various browsers.  Additionally, a link for using
-the proxy, available at the same appspot address.
+You should now be able to visit `Y.appspot.com/downloads.jsp` and see
+a list of installation instructions for the various browsers.
+Additionally, a link for using the proxy, available at the same
+appspot address.
 
 You can additionally tweak the downloads.jsp as you like.
-
 
