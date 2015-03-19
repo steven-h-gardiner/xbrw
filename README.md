@@ -39,7 +39,7 @@ To setup a project directory, you probably want
 
 1. some kind of source control
 1. a subdirectory called 'lib'
-1. download 'xbrw.jar' into 'lib'
+1. download [xbrw-latest.jar](https://github.com/steven-h-gardiner/xbrw/blob/master/releases/xbrw-latest.jar?raw=true) into `lib/xbrw.jar`
 1. extract a stub build file for [Apache Ant](http://ant.apache.org) by
    running `java -jar lib/xbrw.jar`
 
