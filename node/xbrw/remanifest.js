@@ -23,7 +23,7 @@ remanifest.rewrite = function(inurl) {
   }
 
     
-  var outfile = remanifest.mods.path.resolve(remanifest.args.outdir, inurl);
+  var outfile = remanifest.mods.path.resolve(remanifest.args.outdir, filename);
   
   var purl = remanifest.mods.url.parse(inurl);  
   var outurl = function(urlobj, url) {
@@ -34,8 +34,7 @@ remanifest.rewrite = function(inurl) {
       info.absolute = remanifest.mods.path.resolve(info.filepath);      
       info.newrel = remanifest.mods.path.relative(remanifest.args.outdir, info.absolute);
       info.local = remanifest.mods.path.basename(info.filepath);
-      info.outfile = outfile;
-      
+
       console.error("FILEINFO %j", info);
       
       remanifest.mods.fs.createReadStream(info.absolute).pipe(remanifest.mods.fs.createWriteStream(outfile));
