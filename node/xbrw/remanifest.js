@@ -15,7 +15,7 @@ console.error("ARGS: %j", remanifest.args);
 
 remanifest.manifest = JSON.parse(remanifest.mods.fs.readFileSync(remanifest.args.infile));
 
-remanifest.rewrite = function(inurl) {
+remanifest.rewrite = function(inurl, outfile) {
   switch (inurl) {
     case "inject-html.js":
     case "jquery-noconflict.js":
@@ -34,7 +34,7 @@ remanifest.rewrite = function(inurl) {
       info.absolute = remanifest.mods.path.resolve(info.filepath);      
       info.newrel = remanifest.mods.path.relative(remanifest.args.outdir, info.absolute);
       info.local = remanifest.mods.path.basename(info.filepath);
-      info.outfile = remanifest.mods.path.resolve(remanifest.args.outdir, info.local);
+      info.outfile = outfile || remanifest.mods.path.resolve(remanifest.args.outdir, info.local);
 
       setTimeout(function() {
 	console.error("FILEINFO %j", info);
@@ -66,7 +66,7 @@ remanifest.maybeRewrite = function(url) {
 
 console.error("SOURCES");
 for (filename in remanifest.manifest.sources) {
-  remanifest.manifest.sources[filename] = remanifest.rewrite(remanifest.manifest.sources[filename]);
+  remanifest.manifest.sources[filename] = remanifest.rewrite(remanifest.manifest.sources[filename], filename);
 }
 
 remanifest.manifest.content_scripts.forEach(function(script) {
