@@ -34,10 +34,13 @@ remanifest.rewrite = function(inurl) {
       info.absolute = remanifest.mods.path.resolve(info.filepath);      
       info.newrel = remanifest.mods.path.relative(remanifest.args.outdir, info.absolute);
       info.local = remanifest.mods.path.basename(info.filepath);
+      info.outfile = remanifest.mods.path.resolve(remanifest.args.outdir, info.local);
 
-      console.error("FILEINFO %j", info);
+      setTimeout(function() {
+	console.error("FILEINFO %j", info);
       
-      remanifest.mods.fs.createReadStream(info.absolute).pipe(remanifest.mods.fs.createWriteStream(outfile));
+	remanifest.mods.fs.createReadStream(info.absolute).pipe(remanifest.mods.fs.createWriteStream(info.outfile));
+      }, 0);
 
       return info.local;
     }
