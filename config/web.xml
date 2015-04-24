@@ -18,6 +18,22 @@
     <url-pattern>/</url-pattern>
   </servlet-mapping>
   <servlet>
+    <servlet-name>download</servlet-name>
+    <servlet-class>edu.cmu.xbrw.DownloadServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>download</servlet-name>
+    <url-pattern>/gigo</url-pattern>
+  </servlet-mapping>
+  <servlet>
+    <servlet-name>blob</servlet-name>
+    <servlet-class>edu.cmu.xbrw.BlobServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>blob</servlet-name>
+    <url-pattern>/blob</url-pattern>
+  </servlet-mapping>
+  <servlet>
     <servlet-name>mirror</servlet-name>
     <servlet-class>edu.cmu.mixer.proxy.MirrorServlet</servlet-class>
   </servlet>
