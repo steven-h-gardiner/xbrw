@@ -1,6 +1,6 @@
 <project>
   <property environment="env" />
-  <property name="sdk.filename" value="appengine-java-sdk-1.9.18" />
+  <property name="sdk.filename" value="appengine-java-sdk-1.9.19" />
   <property name="sdk.dir0" location="sdk/${sdk.filename}" />
   <property name="xbrw.name0" value="xbrw"/>
   <property name="xbrw.desc0" value="Cross Browser ReWriter"/>
@@ -162,6 +162,7 @@
 
   <target name="war-manifest" depends="node_modules"
 	  description="copies the manifest into the WAR, downloads resources, and resolves URLs to the new location">
+    <mkdir dir="war"/>
     <exec executable="${node.exec}">
       <arg file="node_modules/xbrw/remanifest.js"/>
       <arg file="manifest.json"/>

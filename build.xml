@@ -1,5 +1,5 @@
 <project name="xbrw">
-  <property name="sdk.filename" value="appengine-java-sdk-1.9.18" />
+  <property name="sdk.filename" value="appengine-java-sdk-1.9.19" />
   <property name="sdk.dir" location="sdk/${sdk.filename}" />
 
   <exec executable="bash" outputproperty="build.number">
