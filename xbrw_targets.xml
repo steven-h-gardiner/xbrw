@@ -1,4 +1,5 @@
 <project>
+  <property environment="env" />
   <property name="sdk.filename" value="appengine-java-sdk-1.9.18" />
   <property name="sdk.dir0" location="sdk/${sdk.filename}" />
   <property name="xbrw.name0" value="xbrw"/>
@@ -8,10 +9,15 @@
     <isset property="sdk.dir"/>
   </condition>
 
-  <available file="/usr/bin/chromium" type="file" property="chrome.packager" value="/usr/bin/chromium"/>
+  <available file="chromium" filepath="${env.PATH}" type="file" property="chrome.packager" value="chromium"/>
+  <available file="chromium-browser" filepath="${env.PATH}" type="file" property="chrome.packager" value="chromium-browser"/>
   <available file="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" type="file" property="chrome.packager" value="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"/>
 
-  <target name="sdk">
+  <available file="node" filepath="${env.PATH}" type="file" property="node.exec" value="node"/>
+  <available file="nodejs" filepath="${env.PATH}" type="file" property="node.exec" value="nodejs"/>
+
+  <target description="Downloads the Google App Engine SDK"
+	  name="sdk">
     <get dest="${sdk.filename}.zip" 
          verbose="true"
          src="https://storage.googleapis.com/appengine-sdks/featured/${sdk.filename}.zip"
@@ -23,7 +29,7 @@
     <chmod file="sdk/${sdk.filename}/bin/run_java.sh" perm="+x"/>
   </target>
 
-  <import optional="false">
+  <import optional="true">
     <file file="${sdk.dir}/config/user/ant-macros.xml" />
   </import>
 
@@ -48,16 +54,20 @@
     </fileset>
   </path>
 
-  <target name="lib">
+  <target description="Downloads required lib files"
+	  name="lib">
     <mkdir dir="lib"/>
     <get dest="lib/json.jar"
 	 verbose="true"
 	 src="http://search.maven.org/remotecontent?filepath=org/codeartisans/org.json/20131017/org.json-20131017.jar"
 	 usetimestamp="true" />
   </target>
-  
+
+  <available file="${sdk.dir}" property="sdk.dir.exists"/>
   <target name="copyjars" depends="lib"
-      description="Copies the App Engine JARs to the WAR.">
+	  description="Copies the App Engine JARs to the WAR.">
+    <fail unless="sdk.dir.exists"
+	  message="SDK does not exist in the filesystem; use 'ant sdk' first"/>
     <copy
         todir="war/WEB-INF/lib"
         flatten="true">
@@ -70,22 +80,25 @@
     </copy>
   </target>
 
+  <available file="manifest.json" property="manifest.exists"/>
   <target name="parse_manifest">
-    <exec executable="node" outputproperty="xbrw.name1" failifexecutionfails="false">
+    <fail unless="manifest.exists"
+	  message="File ./manifest.json is missing but required"/>
+    <exec executable="${node.exec}" outputproperty="xbrw.name1" failifexecutionfails="false">
       <arg value="-e"/>
       <arg value="console.log(JSON.parse(require('fs').readFileSync('manifest.json', 'utf8')).name)"/>
     </exec>
     <condition property="xbrw.name" value="${xbrw.name1}" else="${xbrw.name0}">
       <isset property="xbrw.name1"/>
     </condition>
-    <exec executable="node" outputproperty="xbrw.desc1" failifexecutionfails="false">
+    <exec executable="${node.exec}" outputproperty="xbrw.desc1" failifexecutionfails="false">
       <arg value="-e"/>
       <arg value="console.log(JSON.parse(require('fs').readFileSync('manifest.json', 'utf8')).description)"/>
     </exec>
     <condition property="xbrw.desc" value="${xbrw.desc1}" else="${xbrw.desc0}">
       <isset property="xbrw.desc1"/>
     </condition>
-    <exec executable="node" outputproperty="xbrw.label1" failifexecutionfails="false">
+    <exec executable="${node.exec}" outputproperty="xbrw.label1" failifexecutionfails="false">
       <arg value="-e"/>
       <arg value="console.log(JSON.parse(require('fs').readFileSync('manifest.json', 'utf8')).label)"/>
     </exec>
@@ -97,32 +110,30 @@
     </condition>
   </target>
 
-  <target name="properties" depends="parse_manifest">
+  <target description="Lists project properties, including those extracted from the manifest"
+	  name="properties" depends="parse_manifest">
     <echoproperties/>
   </target>
-  
-  <target name="download" depends="node_modules">
-    <exec executable="node">
-      <arg file="node_modules/xbrw/download_sources.js"/>
-      <arg file="war/manifest.json"/>
-    </exec>
-  </target>
 
-  <target name="chromeext" depends="download"/>
+  <target name="chromeext" depends="war-manifest"/>
   <target name="greasemonkey"
-          depends="parse_manifest, node_modules, xbrw-js">
-    <exec executable="node">
+          description="Builds a Greasemonkey script, installable by Firefox users who have installed Greasemonkey"
+	  depends="parse_manifest, node_modules, xbrw-js, war-manifest">
+    <exec executable="${node.exec}">
       <arg file="node_modules/xbrw/greasemonkey.js"/>
-      <arg file="manifest.json"/>
+      <arg file="war/manifest.json"/>
       <arg path="war/${xbrw.name}.user.js"/>
     </exec>
   </target>
-  <target name="tampermonkey" depends="greasemonkey, parse_manifest">
+  <target name="tampermonkey"
+	  description="Builds a Tampermonkey script, installable by Chrome users who have installed Tampermonkey"
+	  depends="greasemonkey, parse_manifest">
     <copy file="war/${xbrw.name}.user.js"
 	  tofile="war/${xbrw.name}.tamper.js"/>
   </target>
 
-  <target name="node_modules">
+  <target name="node_modules"
+	  description="Extracts and installs node.js dependencies for use by other targets">
     <mkdir dir="node_modules"/>
     <unjar src="lib/xbrw.jar" dest="node_modules/" overwrite="true">
       <patternset>
@@ -137,8 +148,10 @@
     </exec>    
   </target>
   
-  <target name="xpi" depends="greasemonkey, parse_manifest">
-    <exec executable="node">
+  <target name="xpi"
+	  description="Builds an XPI file, suitable to be deployed to Firefox and/or uploaded to addons.mozilla.org"
+	  depends="greasemonkey, parse_manifest">
+    <exec executable="${node.exec}">
       <arg file="node_modules/xbrw/node_modules/.bin/greasecooper"/>
       <arg value="--userscript"/>
       <arg file="war/${xbrw.name}.user.js"/>
@@ -147,12 +160,18 @@
     </exec>    
   </target>
 
-  <target name="war-manifest">
-    <copy file="manifest.json"
-          tofile="war/manifest.json"/>
+  <target name="war-manifest" depends="node_modules"
+	  description="copies the manifest into the WAR, downloads resources, and resolves URLs to the new location">
+    <exec executable="${node.exec}">
+      <arg file="node_modules/xbrw/remanifest.js"/>
+      <arg file="manifest.json"/>
+      <arg path="war/manifest.json"/>
+    </exec>
   </target>
   
-  <target name="crx" depends="parse_manifest, download, war-manifest">
+  <target name="crx"
+	  description="Builds a CRX file suitable to be deployed to Chrome and/or uploaded to the Chrome Store"
+	  depends="parse_manifest, war-manifest">
     <delete file="war.crx"/>
     <delete file="war.pem"/>
     <delete file="war/${xbrw.name}.crx"/>
@@ -165,11 +184,18 @@
     <move file="war.pem"
 	  tofile="war/${xbrw.name}.pem" />
   </target>
-  
-  <target name="deployable" depends="war-manifest, download, greasemonkey, tampermonkey, xpi, crx, xbrw-war"/>
+
+  <target name="all-extensions"
+	  depends="greasemonkey, tampermonkey, xpi, crx"
+	  description="Builds all supported extensions"/>
+  <target name="deployable" depends="war-manifest, all-extensions, xbrw-war"/>
 
   <target name="runserver" depends="deployable"
-      description="Starts the development server.">
+      description="Starts the development server, serving a proxy and all extensions.">
+    <dev_appserver war="war" port="9090" />
+  </target>
+  <target name="devserver" depends="war-manifest, xbrw-war"
+      description="Starts the development server without building extensions">
     <dev_appserver war="war" port="9090" />
   </target>
 
@@ -178,11 +204,16 @@
     <pathconvert property="warpath" pathsep=":" refid="war" /> 
     <echo message="bash ${shpath} update war" />
   </target>
-  <target name="deploy" depends="deployable,predeploy">
+  <target name="deploy"
+	  description="Uploads the app to Google App Engine; the app will run a proxy and also serve all supported extensions"
+	  depends="deployable,predeploy">
     <appcfg war="war" action="update" />
   </target>
 
-  <target name="helloworld">
+  <target name="helloworld"
+	  description="Extracts a hackneyed example from the jarfile, for demonstration purposes">
+    <fail if="manifest.exists"
+	  message="You have a ./manifest.json file which you may have worked hard on, so I refuse to overwrite it.  Move it somewhere else if you want to see the example."/>
     <mkdir dir="war"/>
     <unjar src="lib/xbrw.jar" dest="." overwrite="false">
       <patternset>
@@ -190,7 +221,7 @@
       </patternset>
       <flattenmapper/>
     </unjar>
-    <unjar src="lib/xbrw.jar" dest="war/" overwrite="false">
+    <unjar src="lib/xbrw.jar" dest="." overwrite="false">
       <patternset>
         <include name="helloworld/helloworld.*"/>
       </patternset>
@@ -198,16 +229,19 @@
     </unjar>
   </target>
 
-  <target name="xbrw-jsp">
+  <target name="xbrw-jsp"
+	  description="Extracts JSP files from the jarfile">
     <mkdir dir="war"/>
     <unjar src="lib/xbrw.jar" dest="war/" overwrite="false">
       <patternset>
         <include name="jsp/*jsp"/>
+        <include name="jsp/*html"/>
       </patternset>
       <flattenmapper/>
     </unjar>
   </target>
-  <target name="xbrw-js">
+  <target name="xbrw-js"
+	  description="Extracts javascript files from the jarfile">
     <mkdir dir="war"/>
     <unjar src="lib/xbrw.jar" dest="war/" overwrite="false">
       <patternset>
