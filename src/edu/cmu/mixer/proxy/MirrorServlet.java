@@ -220,8 +220,8 @@ public class MirrorServlet  extends javax.servlet.http.HttpServlet {
               if (csssrc.startsWith("file:")) {
                 csssrc = "/" + csspath;
               }
-              sb.append("<link data-resolve=''{0}'' data-refract=''{1}'' rel='stylesheet' href='");
-              sb.append(csssrc);
+              sb.append("<link data-resolve=''{0}'' data-refract=''{1}'' rel='stylesheet' href='/");
+              sb.append(csspath);
               sb.append("'></link>");
               sb.append("\n");
             }

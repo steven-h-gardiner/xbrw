@@ -1,0 +1,14 @@
+<project name="xbrw-project">
+  <!--
+  <property name="sdk.filename" value="appengine-java-sdk-1.9.18"/>
+  <property name="sdk.dir" value="../sdk/${sdk.filename}"/>
+  -->
+
+  <!-- must be set to app name from Google if you want to deploy a proxy -->
+  <property name="appengine.appname" value="xbrw"/>
+  <import>
+    <javaresource name="xbrw_targets.xml">
+      <classpath location="lib/xbrw.jar"/>
+    </javaresource>
+  </import>
+</project>
