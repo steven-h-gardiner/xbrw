@@ -18,6 +18,7 @@ remanifest.manifest = JSON.parse(remanifest.mods.fs.readFileSync(remanifest.args
 remanifest.rewrite = function(inurl, outfile) {
   switch (inurl) {
     case "inject-html.js":
+    case "chrome-extension-polyfill.js":
     case "jquery-noconflict.js":
       return inurl;
   }

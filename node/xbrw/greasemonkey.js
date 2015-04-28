@@ -50,6 +50,14 @@ xbrwgm.convert = function(manfile, gmfile) {
     });
   });
 
+  spec.header.push("// @resource manifest manifest.json");
+  spec.body.push("\ntry {");
+  spec.body.push("console.error('CHROMEDEF');");
+  spec.body.push("\nwindow.xbrw = {};");
+  spec.body.push("window.xbrw.manifest = JSON.parse(GM_getResourceText('manifest'));");
+  spec.body.push("console.error('/CHROMEDEF');");
+  spec.body.push("} catch (cee) { console.error('CHROMEDEF ERR: ' + cee); }");
+  
   spec.header.push("// @grant GM_getResourceText");
   spec.header.push("// @grant GM_addStyle");
   spec.header.push("// @grant GM_xmlhttpRequest");
